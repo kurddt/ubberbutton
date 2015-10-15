@@ -2,6 +2,7 @@
 #include <ubberFrame.h>
 #include <SPI.h>
 #include <RH_NRF24.h>
+#include <RH_ASK.h>
 
 const int buttonPinPause = 2;     // the number of the pushbutton pin
 const int buttonPinRepas = 3;
@@ -22,13 +23,21 @@ int buttonPause = 0;         // variable for reading the pushbutton status
 int buttonRepas = 1;
 int dip;
 
+//433
+const int d433_rx = 4;
+const int d433_tx = 5;
+
 UbberFrame f;
 UbberFrame *f_res;
 RH_NRF24 nrf24;
 
-void setup() {
+RH_ASK driver(2000, d433_rx, d433_tx, A6, false);
+
 // initialize the library with the numbers of the interface pins
 LiquidCrystal lcd(LCDRSPin, LCDEPin, LCDData3, LCDData2, LCDData1, LCDData0);
+
+void setup() {  
+
   // initialize the LED pin as an output:
   pinMode(ledPin, OUTPUT);      
   // initialize the pushbutton pin as an input:
@@ -46,6 +55,10 @@ LiquidCrystal lcd(LCDRSPin, LCDEPin, LCDData3, LCDData2, LCDData1, LCDData0);
     Serial.println("setChannel failed");
   if (!nrf24.setRF(RH_NRF24::DataRate2Mbps, RH_NRF24::TransmitPower0dBm))
     Serial.println("setRF failed");
+  if(!driver.init()) {
+    Serial.println("433 init failed");
+  }  
+    
   lcd.begin(16, 2);
   setState("Begin");
     
@@ -130,6 +143,8 @@ void loop(){
   Serial.print(f.getLength(), DEC);
   Serial.print("...");
   nrf24.send(f.frameToChar(), f.getLength());
+  driver.send(f.frameToChar(), f.getLength());
+  driver.waitPacketSent();
   
   delay(1000);  
   Serial.println("DONE");
@@ -140,19 +155,40 @@ void loop(){
  if(nrf24.available())
  {
    setState("Receiving");
+   int dest;
    if (nrf24.recv(buf, &len)) {
      Serial.print("got request: ");
      Serial.println((char*)buf);
      
      f_res = new UbberFrame(buf, len);
-  setStatus(f_res->getTypeString());   
-     
-     if(f_res->getDestID() == UbberFrame::GUILLAUME_L)
+     dest = f_res->getDestID();
+     if(dest == UbberFrame::GUILLAUME_L || dest == UbberFrame::ALL)
      {
        Serial.print("Get ");
        Serial.println(f_res->getTypeString());
      }     
-   }   
+   }
+  setStatus(f_res->getTypeString());   
  }
+ 
+ if (driver.recv(buf, &len)) // Non-blocking
+ {
+   setState("Receiving");
+   int dest;
+   if (nrf24.recv(buf, &len)) {
+     Serial.print("got request: ");
+     Serial.println((char*)buf);
+     
+     f_res = new UbberFrame(buf, len);
+     dest = f_res->getDestID();
+     if(dest == UbberFrame::GUILLAUME_L || dest == UbberFrame::ALL)
+     {
+       Serial.print("Get ");
+       Serial.println(f_res->getTypeString());
+     }     
+   }
+  setStatus(f_res->getTypeString());
+ }
+ 
  
 }
