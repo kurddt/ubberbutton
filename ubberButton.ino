@@ -1,3 +1,4 @@
+#include <LiquidCrystal.h>
 #include <ubberFrame.h>
 #include <SPI.h>
 #include <RH_NRF24.h>
@@ -7,6 +8,14 @@ const int buttonPinRepas = 3;
 
 const int ledPin = A0;      // the number of the LED pin
 const int DIPPin = A7;
+
+//LCD
+const int LCDRSPin = 7;
+const int LCDEPin = 6;
+const int LCDData0 = A1;
+const int LCDData1 = A2;
+const int LCDData2 = A3;
+const int LCDData3 = A4;
 
 // variables will change:
 int buttonPause = 0;         // variable for reading the pushbutton status
@@ -18,6 +27,8 @@ UbberFrame *f_res;
 RH_NRF24 nrf24;
 
 void setup() {
+// initialize the library with the numbers of the interface pins
+LiquidCrystal lcd(LCDRSPin, LCDEPin, LCDData3, LCDData2, LCDData1, LCDData0);
   // initialize the LED pin as an output:
   pinMode(ledPin, OUTPUT);      
   // initialize the pushbutton pin as an input:
@@ -35,7 +46,22 @@ void setup() {
     Serial.println("setChannel failed");
   if (!nrf24.setRF(RH_NRF24::DataRate2Mbps, RH_NRF24::TransmitPower0dBm))
     Serial.println("setRF failed");
+  lcd.begin(16, 2);
+  setState("Begin");
     
+}
+
+int setState(const char * state)
+{
+  lcd.setCursor(0, 0);
+  // print the number of seconds since reset:
+  lcd.print(state);
+}
+
+int setStatus(const char *s)
+{
+  lcd.setCursor(0,1);
+  lcd.print(s);
 }
 
 int getDip()
@@ -75,6 +101,8 @@ void loop(){
  
  if( buttonPause == HIGH || buttonRepas == HIGH) {
    
+   setState("Sending");
+   setStatus("...");
    Serial.println("Begin send");
    dip = getDip();   
    
@@ -105,16 +133,19 @@ void loop(){
   
   delay(1000);  
   Serial.println("DONE");
+  setStatus("OK");
   digitalWrite(ledPin, LOW);
  }
  
  if(nrf24.available())
  {
+   setState("Receiving");
    if (nrf24.recv(buf, &len)) {
      Serial.print("got request: ");
      Serial.println((char*)buf);
      
      f_res = new UbberFrame(buf, len);
+  setStatus(f_res->getTypeString());   
      
      if(f_res->getDestID() == UbberFrame::GUILLAUME_L)
      {
