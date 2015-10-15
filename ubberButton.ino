@@ -60,15 +60,16 @@ void setup() {
   if(!driver.init()) {
     Serial.println("433 init failed");
   }  
-    
+
   lcd.begin(16, 2);
   setState("Begin");
-    
+
 }
 
 int setState(const char * state)
 {
   lcd.setCursor(0, 0);
+  lcd.clear();
   // print the number of seconds since reset:
   lcd.print(state);
 }
@@ -85,112 +86,111 @@ int getDip()
   Serial.println(value & 0xFFF8, HEX);
   switch(value & 0xFFF8)
   {
-    case 0:
-      return 0xff;
-    case 0x2D8:
-      return 0x1;
-    case 0x360:
-      return 0x3;
-    case 0x2A8:
-      return 0x2;
-    case 0x338:
-      return 0x6;
-    case 0x920:
-      return 0x7;
-    case 0x260:
-      return 4;
-    default:
-      return 0xff;
-      
+  case 0:
+    return 0xff;
+  case 0x2D8:
+    return 0x1;
+  case 0x360:
+    return 0x3;
+  case 0x2A8:
+    return 0x2;
+  case 0x338:
+    return 0x6;
+  case 0x920:
+    return 0x7;
+  case 0x260:
+    return 4;
+  default:
+    return 0xff;
+
   }
 }
 
 uint8_t buf[RH_NRF24_MAX_MESSAGE_LEN];
 uint8_t len = sizeof(buf);
+
+int nrf_received = 0;
+int r433_received = 0;
+
 void loop(){
   // read the state of the pushbutton value:
   buttonPause = digitalRead(buttonPinPause);
   buttonRepas = digitalRead(buttonPinRepas);
+
   
-  
- 
- if( buttonPause == HIGH || buttonRepas == HIGH) {
-   
-   setState("Sending");
-   setStatus("...");
-   Serial.println("Begin send");
-   dip = getDip();   
-   
-   digitalWrite(ledPin, HIGH);
-   
-   f.setSourceID(UbberFrame::GUILLAUME_L); 
-  if(buttonPause == HIGH)
-    f.setType(UbberFrame::PAUSE);
-  else if(buttonRepas == HIGH)
-    f.setType(UbberFrame::REPAS);
-  else {
-    Serial.println("Error");
-    return;
+
+  if( buttonPause == HIGH || buttonRepas == HIGH) {
+    setState("Sending");
+    setStatus("...");
+    Serial.println("Begin send");
+    dip = getDip();   
+
+    digitalWrite(ledPin, HIGH);
+
+    f.setSourceID(UbberFrame::GUILLAUME_L); 
+    if(buttonPause == HIGH)
+      f.setType(UbberFrame::PAUSE);
+    else if(buttonRepas == HIGH)
+      f.setType(UbberFrame::REPAS);
+    else {
+      Serial.println("Error");
+      return;
+    }
+
+    Serial.println(f.getTypeString());
+
+    Serial.print("DIP: ");
+    Serial.println(dip, HEX);
+
+    f.setDestID(dip);
+    Serial.println(f.getDestIDString());
+
+    Serial.print("Sending ");
+    Serial.print(f.getLength(), DEC);
+    Serial.print("...");
+    nrf24.send(f.frameToChar(), f.getLength());
+    driver.send(f.frameToChar(), f.getLength());
+    driver.waitPacketSent();
+
+    delay(1000);  
+    Serial.println("DONE");
+    setStatus("OK");
+    digitalWrite(ledPin, LOW);
   }
   
-  Serial.println(f.getTypeString());
-  
-  Serial.print("DIP: ");
-  Serial.println(dip, HEX);
-  
-  f.setDestID(dip);
-  Serial.println(f.getDestIDString());
+  nrf_received = nrf24.available();
+  len = sizeof(buf);
+  r433_received = driver.recv(buf, &len);
+  if(nrf_received || r433_received)
+  {
+    digitalWrite(ledPinR, HIGH);
+    setState("Receiving");
+    setStatus("...");
+    if(nrf_received) Serial.println("Receiving from NRF");
+    if(r433_received) Serial.println("Receiving from 433");
+    int dest;
+    
+    if (r433_received || nrf24.recv(buf, &len)) {
+      int i =0;
+      Serial.print("got request: ");
+      for(i=0;i<len;i++) {
+        Serial.print(buf[i], HEX); Serial.print(" ");
+      }
 
-  Serial.print("Sending ");
-  Serial.print(f.getLength(), DEC);
-  Serial.print("...");
-  nrf24.send(f.frameToChar(), f.getLength());
-  driver.send(f.frameToChar(), f.getLength());
-  driver.waitPacketSent();
-  
-  delay(1000);  
-  Serial.println("DONE");
-  setStatus("OK");
-  digitalWrite(ledPin, LOW);
- }
- 
- if(nrf24.available())
- {
-   setState("Receiving");
-   int dest;
-   if (nrf24.recv(buf, &len)) {
-     Serial.print("got request: ");
-     Serial.println((char*)buf);
-     
-     f_res = new UbberFrame(buf, len);
-     dest = f_res->getDestID();
-     if(dest == UbberFrame::GUILLAUME_L || dest == UbberFrame::ALL)
-     {
-       Serial.print("Get ");
-       Serial.println(f_res->getTypeString());
-     }     
-   }
-  setStatus(f_res->getTypeString());   
- }
- 
- if (driver.recv(buf, &len)) // Non-blocking
- {
-   setState("Receiving");
-   int dest;
-   if (nrf24.recv(buf, &len)) {
-     Serial.print("got request: ");
-     Serial.println((char*)buf);
-     
-     f_res = new UbberFrame(buf, len);
-     dest = f_res->getDestID();
-     if(dest == UbberFrame::GUILLAUME_L || dest == UbberFrame::ALL)
-     {
-       Serial.print("Get ");
-       Serial.println(f_res->getTypeString());
-     }     
-   }
-  setStatus(f_res->getTypeString());
- }
- 
- 
+      f_res = new UbberFrame(buf, len);
+      dest = f_res->getDestID();
+      if(dest == UbberFrame::GUILLAUME_L || dest == UbberFrame::ALL)
+      {
+        Serial.print("Get ");
+        Serial.println(f_res->getTypeString());
+      }     
+    }
+    setState(f_res->getSourceIDString());
+    char toto[30];
+    strcpy(toto, f_res->getTypeString());
+    strcat(toto, "-");
+    strcat(toto, (const char *)f_res->getPayload());
+    setStatus(toto);   
+  }
 }
+
