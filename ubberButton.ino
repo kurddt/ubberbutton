@@ -5,9 +5,8 @@
 const int buttonPinPause = 2;     // the number of the pushbutton pin
 const int buttonPinRepas = 3;
 
-const int buttonPinDIP0 = 4;
-const int buttonPinDIP1 = 5;
-const int ledPin = A7;      // the number of the LED pin
+const int ledPin = A0;      // the number of the LED pin
+const int DIPPin = A7;
 
 // variables will change:
 int buttonPause = 0;         // variable for reading the pushbutton status
@@ -24,10 +23,9 @@ void setup() {
   // initialize the pushbutton pin as an input:
   pinMode(buttonPinPause, INPUT);     
   pinMode(buttonPinRepas, INPUT);
+  pinMode(DIPPin, INPUT);
   
-  pinMode(buttonPinDIP0, INPUT);
-  pinMode(buttonPinDIP1, INPUT);
-  
+ 
   Serial.begin(9600);
   
   
@@ -42,7 +40,28 @@ void setup() {
 
 int getDip()
 {
-  return (digitalRead(buttonPinDIP0) == HIGH) | ( ( digitalRead(buttonPinDIP1) == HIGH) << 1);
+  int value = analogRead(DIPPin);
+  Serial.println(value & 0xFFF8, HEX);
+  switch(value & 0xFFF8)
+  {
+    case 0:
+      return 0xff;
+    case 0x2D8:
+      return 0x1;
+    case 0x360:
+      return 0x3;
+    case 0x2A8:
+      return 0x2;
+    case 0x338:
+      return 0x6;
+    case 0x920:
+      return 0x7;
+    case 0x260:
+      return 4;
+    default:
+      return 0xff;
+      
+  }
 }
 
 uint8_t buf[RH_NRF24_MAX_MESSAGE_LEN];
@@ -59,8 +78,6 @@ void loop(){
    Serial.println("Begin send");
    dip = getDip();   
    
-   if(dip == 0) dip = ff;  
-  
    digitalWrite(ledPin, HIGH);
    
    f.setSourceID(UbberFrame::GUILLAUME_L); 
