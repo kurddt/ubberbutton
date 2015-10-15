@@ -8,6 +8,7 @@ const int buttonPinPause = 2;     // the number of the pushbutton pin
 const int buttonPinRepas = 3;
 
 const int ledPin = A0;      // the number of the LED pin
+const int ledPinR= 9;
 const int DIPPin = A7;
 
 //LCD
@@ -39,16 +40,17 @@ LiquidCrystal lcd(LCDRSPin, LCDEPin, LCDData3, LCDData2, LCDData1, LCDData0);
 void setup() {  
 
   // initialize the LED pin as an output:
-  pinMode(ledPin, OUTPUT);      
+  pinMode(ledPin, OUTPUT);     
+  pinMode(ledPinR, OUTPUT); 
   // initialize the pushbutton pin as an input:
   pinMode(buttonPinPause, INPUT);     
   pinMode(buttonPinRepas, INPUT);
   pinMode(DIPPin, INPUT);
-  
- 
+
+
   Serial.begin(9600);
-  
-  
+
+
   if(!nrf24.init())
     Serial.println("nrf init failed");
   if(!nrf24.setChannel(1))
