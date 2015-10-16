@@ -111,12 +111,15 @@ uint8_t len = sizeof(buf);
 
 int nrf_received = 0;
 int r433_received = 0;
+int count;
+
 
 void loop(){
   // read the state of the pushbutton value:
   buttonPause = digitalRead(buttonPinPause);
   buttonRepas = digitalRead(buttonPinRepas);
-
+  if(count++ == 10)
+    digitalWrite(ledPinR, LOW);
   
 
   if( buttonPause == HIGH || buttonRepas == HIGH) {
