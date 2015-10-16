@@ -194,6 +194,7 @@ void loop(){
     strcat(toto, "-");
     strcat(toto, (const char *)f_res->getPayload());
     setStatus(toto);   
+    delete f_res;
   }
 }
 
