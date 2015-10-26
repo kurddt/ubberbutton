@@ -4,6 +4,8 @@
 #include <RH_NRF24.h>
 #include <RH_ASK.h>
 
+#define MSG_OK "OK              "
+
 const int buttonPinPause = 2;     // the number of the pushbutton pin
 const int buttonPinRepas = 3;
 const int buttonPinReset = A6;
@@ -83,6 +85,15 @@ int setStatus(const char *s)
   lcd.print(s);
 }
 
+int setStatus(const char *s1, const char *s2)
+{
+    char toto[30];
+    strcpy(toto, s1);
+    strcat(toto, "-");
+    strcat(toto, (const char *)s2);
+    setStatus(toto);    
+}
+
 int getDip()
 {
   int value = analogRead(DIPPin);
@@ -107,6 +118,13 @@ int getDip()
     return 0xff;
 
   }
+}
+
+void clear()
+{
+  lcd.clear();
+  setState("Waiting");
+  digitalWrite(ledPinR, LOW);
 }
 
 uint8_t buf[RH_NRF24_MAX_MESSAGE_LEN];
@@ -152,6 +170,7 @@ void loop(){
 
     f.setDestID(dip);
     Serial.println(f.getDestIDString());
+    setStatus(f.getDestIDString(), f.getTypeString());
 
     Serial.print("Sending ");
     Serial.print(f.getLength(), DEC);
@@ -162,7 +181,7 @@ void loop(){
 
     delay(1000);  
     Serial.println("DONE");
-    setStatus("OK");
+    setStatus(MSG_OK);
     digitalWrite(ledPin, LOW);
   }
   
@@ -194,11 +213,7 @@ void loop(){
       }     
     }
     setState(f_res->getSourceIDString());
-    char toto[30];
-    strcpy(toto, f_res->getTypeString());
-    strcat(toto, "-");
-    strcat(toto, (const char *)f_res->getPayload());
-    setStatus(toto);   
+  
     delete f_res;
   }
 }
