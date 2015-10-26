@@ -6,6 +6,7 @@
 
 const int buttonPinPause = 2;     // the number of the pushbutton pin
 const int buttonPinRepas = 3;
+const int buttonPinReset = A6;
 
 const int ledPin = A0;      // the number of the LED pin
 const int ledPinR= 9;
@@ -22,6 +23,7 @@ const int LCDData3 = A4;
 // variables will change:
 int buttonPause = 0;         // variable for reading the pushbutton status
 int buttonRepas = 1;
+int buttonReset = 0;
 int dip;
 
 //433
@@ -61,6 +63,7 @@ void setup() {
     Serial.println("433 init failed");
   }  
 
+  analogReference(EXTERNAL);
   lcd.begin(16, 2);
   setState("Begin");
 
@@ -118,10 +121,12 @@ void loop(){
   // read the state of the pushbutton value:
   buttonPause = digitalRead(buttonPinPause);
   buttonRepas = digitalRead(buttonPinRepas);
-  if(count++ == 10)
-    digitalWrite(ledPinR, LOW);
+  buttonReset = analogRead(A6);
   
-
+  if(buttonReset > 256)
+    clear();
+    
+ 
   if( buttonPause == HIGH || buttonRepas == HIGH) {
     setState("Sending");
     setStatus("...");
