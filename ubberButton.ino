@@ -211,8 +211,8 @@ void loop(){
         Serial.print("Get ");
         Serial.println(f_res->getTypeString());
       }     
+      setState(f_res->getSourceIDString());    
     }
-    setState(f_res->getSourceIDString());
   
     delete f_res;
   }
