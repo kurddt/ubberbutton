@@ -186,8 +186,8 @@ void loop(){
   }
   
   nrf_received = nrf24.available();
-  len = sizeof(buf);
   r433_received = driver.recv(buf, &len);
+  len = sizeof(buf);
   if(nrf_received || r433_received)
   {
     digitalWrite(ledPinR, HIGH);
@@ -211,7 +211,8 @@ void loop(){
         Serial.print("Get ");
         Serial.println(f_res->getTypeString());
       }     
-      setState(f_res->getSourceIDString());    
+      setState(f_res->getSourceIDString());
+      setStatus(f_res->getTypeString());    
     }
   
     delete f_res;
