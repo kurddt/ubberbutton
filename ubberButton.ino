@@ -178,6 +178,7 @@ void loop(){
     nrf24.send(f.frameToChar(), f.getLength());
     driver.send(f.frameToChar(), f.getLength());
     driver.waitPacketSent();
+    nrf24.waitPacketSent();
 
     delay(1000);  
     Serial.println("DONE");
