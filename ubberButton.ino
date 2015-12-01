@@ -295,14 +295,26 @@ void loop(){
   } else if(state == RECEIVED) {
 	  unsigned long time = millis();	  
 	  static unsigned long lastime = time;
-	  if(time - lastime > 500) {
-		  lastime = time;
-		  ledblue = !ledblue;
-		  ledred = !ledred;
+	  if(f.getType() == UbberFrame::ACQUITTEMENT) {
+		  if(time - lastime > 500) {
+			  lastime = time;
+			  ledred = 1;
+			  ledblue = !ledblue;
+			  
+			  setLED(ledblue);
+			  digitalWrite(ledPinR, ledred);
+		  }
+	  }
+	  else {
+		  if(time - lastime > 500) {
+			  lastime = time;
+			  ledblue = !ledblue;
+			  ledred = !ledred;
 
-		  setLED(ledblue);
-		  digitalWrite(ledPinR, ledred);
-	  }	  
+			  setLED(ledblue);
+			  digitalWrite(ledPinR, ledred);
+		  }
+	  }
   }
 
   if(old_state != state) { // UPDATE display
@@ -322,8 +334,7 @@ void loop(){
 	  else if(state == RECEIVED) {
 		  setDisplayState(f.getSourceIDString());
 		  setStatus(f.getTypeString());
-	      digitalWrite(ledPinR, ledred);
-		  setLED(ledblue);
+		  ledblue = !ledred;
 		  
 	  }
 	  else if(state == FOROTHER) {
